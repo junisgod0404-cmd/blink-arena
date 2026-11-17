@@ -8,7 +8,7 @@ app.get('/api/leaderboard',(req,res)=>res.json([...scores].sort((a,b)=>b[1]-a[1]
 app.get('/qr.svg',async(req,res)=>{const url=String(req.query.url||'');if(!/^https?:\/\/[^\s]+$/.test(url)||url.length>500)return res.status(400).send('Invalid URL');res.type('image/svg+xml').send(await QRCode.toString(url,{type:'svg',margin:2,width:250}));});
 const code=()=>Math.random().toString(36).slice(2,7).toUpperCase();
 function makeRoom(mode){return {mode,players:[],bullets:[],started:false,ended:false,last:Date.now(),bossNext:Date.now()+1000,bossShots:0,startTime:0};}
-function state(r){return {mode:r.mode,started:r.started,ended:r.ended,players:r.players.map(p=>({id:p.id,name:p.name,x:p.x,y:p.y,hp:p.hp,ready:p.ready,alive:p.hp>0,parryUntil:p.parryUntil,parryReady:p.parryReady,dashReady:p.dashReady,wins:scores.get(p.name)||0})),bullets:r.bullets.map(b=>({x:b.x,y:b.y,owner:b.owner})),boss:r.mode==='survival'?{x:450,y:45}:null};}
+function state(r){return {mode:r.mode,started:r.started,ended:r.ended,players:r.players.map(p=>({id:p.id,name:p.name,x:p.x,y:p.y,hp:p.hp,ready:p.ready,alive:p.hp>0,parryUntil:p.parryUntil,parryReady:p.parryReady,dashReady:p.dashReady,wins:scores.get(p.name)||0})),bullets:r.bullets.map(b=>({x:b.x,y:b.y,owner:b.owner})),elapsedSeconds:r.startTime?Math.max(0,(Date.now()-r.startTime)/1000):0,boss:r.mode==='survival'?{x:450,y:45}:null};}
 function broadcast(k,r){io.to(k).emit('state',state(r));}
 function end(r,k,winner){if(r.ended)return;r.ended=true;r.started=false;if(winner&&r.mode==='duel'){scores.set(winner.name,(scores.get(winner.name)||0)+1);saveScores()}io.to(k).emit('finished',{winner:winner?.name||null,mode:r.mode,leaderboard:[...scores].sort((a,b)=>b[1]-a[1]).slice(0,10)});}
 io.on('connection',s=>{
